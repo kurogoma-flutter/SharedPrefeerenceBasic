@@ -1,115 +1,261 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const MyFirstApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+class MyFirstApp extends StatelessWidget {
+  const MyFirstApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'My First App',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      // スタート画面を表示
+      home: const StartPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+class StartPage extends StatelessWidget {
+  const StartPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
+          children: [
             const Text(
-              'You have pushed the button this many times:',
+              'スライドパズル',
+              style: TextStyle(fontSize: 32),
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => showPuzzlePage(context), // 処理を追加
+              child: const Text('スタート'),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+
+  void showPuzzlePage(BuildContext context) {
+    // パズル画面へと遷移
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const PuzzlePage()),
+    );
+  }
+}
+
+class PuzzlePage extends StatefulWidget {
+  const PuzzlePage({Key? key}) : super(key: key);
+
+  @override
+  _PuzzlePageState createState() => _PuzzlePageState();
+}
+
+class _PuzzlePageState extends State<PuzzlePage> {
+  // 現在のタイルの状態
+  List<int> puzzleNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('スライドパズル'),
+        actions: [
+          // 保存したタイルの状態を読み込むボタン
+          IconButton(
+            onPressed: () => loadPuzzleNumbers(),
+            icon: const Icon(Icons.play_arrow),
+          ),
+          // 現在のタイルの状態を保存するボタン
+          IconButton(
+            onPressed: () => savePuzzleNumbers(),
+            icon: const Icon(Icons.save),
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          children: [
+            // タイル一覧
+            Expanded(
+              child: Center(
+                child: PuzzlesView(
+                  numbers: puzzleNumbers,
+                  isCorrect: calcIsCorrect(puzzleNumbers),
+                  // タップしたら入れ替える
+                  onPressed: (number) => swapPuzzle(number),
+                ),
+              ),
+            ),
+            // シャッフルボタン
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => shufflePuzzles(),
+                icon: const Icon(Icons.shuffle),
+                label: const Text('シャッフル'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // タイルが正解であるか
+  bool calcIsCorrect(List<int> numbers) {
+    final correctNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+    for (int i = 0; i < correctNumbers.length; i++) {
+      if (numbers[i] != correctNumbers[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // タップしたタイルと空白を入れ替える
+  void swapPuzzle(int number) {
+    // タップしたタイルと空白が隣り合っている場合のみ入れ替える
+    if (canSwapPuzzle(number)) {
+      setState(() {
+        final indexOfPuzzle = puzzleNumbers.indexOf(number);
+        final indexOfEmpty = puzzleNumbers.indexOf(0);
+        puzzleNumbers[indexOfPuzzle] = 0;
+        puzzleNumbers[indexOfEmpty] = number;
+      });
+    }
+  }
+
+  // タップしたタイルが空白と入れ替え可能であるか
+  bool canSwapPuzzle(int number) {
+    final indexOfPuzzle = puzzleNumbers.indexOf(number);
+    final indexOfEmpty = puzzleNumbers.indexOf(0);
+    switch (indexOfEmpty) {
+      case 0:
+        return [1, 3].contains(indexOfPuzzle);
+      case 1:
+        return [0, 2, 4].contains(indexOfPuzzle);
+      case 2:
+        return [1, 5].contains(indexOfPuzzle);
+      case 3:
+        return [0, 4, 6].contains(indexOfPuzzle);
+      case 4:
+        return [1, 3, 5, 7].contains(indexOfPuzzle);
+      case 5:
+        return [2, 4, 8].contains(indexOfPuzzle);
+      case 6:
+        return [3, 7].contains(indexOfPuzzle);
+      case 7:
+        return [4, 6, 8].contains(indexOfPuzzle);
+      case 8:
+        return [5, 7].contains(indexOfPuzzle);
+      default:
+        return false;
+    }
+  }
+
+  // タイルをシャッフルする
+  void shufflePuzzles() {
+    setState(() {
+      puzzleNumbers.shuffle();
+    });
+  }
+
+  // 現在のタイルの状態を保存する
+  void savePuzzleNumbers() async {
+    final value = jsonEncode(puzzleNumbers);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('Puzzle_NUMBERS', value);
+  }
+
+  // 保存したタイルの状態を読み込む
+  void loadPuzzleNumbers() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString('Puzzle_NUMBERS');
+    if (value != null) {
+      final numbers = (jsonDecode(value) as List<dynamic>).map((v) => v as int).toList();
+      setState(() {
+        puzzleNumbers = numbers;
+      });
+    }
+  }
+}
+
+class PuzzlesView extends StatelessWidget {
+  final List<int> numbers;
+  final bool isCorrect;
+  final void Function(int number) onPressed;
+
+  const PuzzlesView({
+    Key? key,
+    required this.numbers,
+    required this.isCorrect,
+    required this.onPressed,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // グリッド状にWidgetを並べる
+    return GridView.count(
+      shrinkWrap: true,
+      crossAxisCount: 3,
+      crossAxisSpacing: 24,
+      mainAxisSpacing: 24,
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      children: numbers // 受け取ったデータを元に表示する
+          .map((number) {
+        if (number == 0) {
+          return Container();
+        }
+        return PuzzleView(
+          number: number,
+          // 正解の場合は色を変える
+          color: isCorrect ? Colors.green : Colors.blue,
+          // コールバックでタップされたことを伝える
+          onPressed: () => onPressed(number),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class PuzzleView extends StatelessWidget {
+  final int number;
+  final Color color;
+  final void Function() onPressed;
+
+  const PuzzleView({
+    Key? key,
+    required this.number,
+    required this.color,
+    required this.onPressed,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        primary: color,
+        textStyle: const TextStyle(fontSize: 32),
+      ),
+      child: Center(
+        child: Text(number.toString()),
+      ),
     );
   }
 }
